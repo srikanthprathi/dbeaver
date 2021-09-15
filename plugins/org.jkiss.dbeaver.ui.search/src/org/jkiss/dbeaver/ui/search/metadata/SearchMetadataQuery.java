@@ -37,8 +37,9 @@ import org.jkiss.dbeaver.ui.search.AbstractSearchResult;
 import org.jkiss.dbeaver.utils.GeneralUtils;
 import org.jkiss.dbeaver.utils.RuntimeUtils;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 
 public class SearchMetadataQuery implements ISearchQuery {
     private static final Log log = Log.getLog(SearchMetadataQuery.class);
@@ -87,11 +88,11 @@ public class SearchMetadataQuery implements ISearchQuery {
                 objectNameMask = objectNameMask + "%"; //$NON-NLS-1$
                 params.setMask(objectNameMask);
             }
-            int totalObjects = 0;
             DBNModel navigatorModel = DBWorkbench.getPlatform().getNavigatorModel();
             DBRProgressMonitor localMonitor = RuntimeUtils.makeMonitor(monitor);
 
             Collection<DBSObjectReference> objects = structureAssistant.findObjectsByMask(localMonitor, executionContext, params);
+            List<DBNNode> nodes = new ArrayList<>();
             for (DBSObjectReference reference : objects) {
                 if (monitor.isCanceled()) {
                     break;
@@ -101,15 +102,15 @@ public class SearchMetadataQuery implements ISearchQuery {
                     if (object != null) {
                         DBNNode node = navigatorModel.getNodeByObject(localMonitor, object, false);
                         if (node != null) {
-                            searchResult.addObjects(Collections.singletonList(node));
-                            totalObjects++;
+                            nodes.add(node);
                         }
                     }
                 } catch (DBException e) {
                     log.error(e);
                 }
             }
-            searchResult.fireChange(new AbstractSearchResult.DatabaseSearchFinishEvent(searchResult, totalObjects));
+            searchResult.addObjects(nodes);
+            searchResult.fireChange(new AbstractSearchResult.DatabaseSearchFinishEvent(searchResult, nodes.size()));
 
             return Status.OK_STATUS;
         } catch (DBException e) {

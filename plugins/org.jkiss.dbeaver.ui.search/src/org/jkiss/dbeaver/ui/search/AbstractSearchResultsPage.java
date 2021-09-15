@@ -29,6 +29,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IMemento;
 import org.eclipse.ui.part.Page;
+import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBPNamedObject;
 import org.jkiss.dbeaver.model.navigator.DBNContainer;
@@ -240,33 +241,10 @@ public abstract class AbstractSearchResultsPage <OBJECT_TYPE> extends Page imple
         }
     }
 
-    private static class ResultsNode {
-        DBNNode node;
-        ResultsNode parent;
-        final List<ResultsNode> children = new ArrayList<>();
-
-        ResultsNode(DBNNode node, ResultsNode parent)
-        {
-            this.node = node;
-            this.parent = parent;
-        }
-        DBNNode[] getChildrenNodes()
-        {
-            DBNNode[] nodes = new DBNNode[children.size()];
-            for (int i = 0; i < children.size(); i++) {
-                nodes[i] = children.get(i).node;
-            }
-            return nodes;
-        }
-    }
-
     private class ResultsContentProvider extends TreeContentProvider {
-
-        private ResultsNode rootResults;
-        private Map<DBNNode,ResultsNode> nodeMap;
-
-        private ResultsContentProvider() {
-        }
+        private final Map<DBNNode, DBNNode> parentMap = new HashMap<>(); // node -> parent
+        private final Map<DBNNode, Collection<DBNNode>> childrenMultimap = new HashMap<>(); // node -> children
+        private DBNNode rootNode;
 
         @Override
         public void inputChanged(Viewer viewer, Object oldInput, Object newInput)
@@ -277,76 +255,70 @@ public abstract class AbstractSearchResultsPage <OBJECT_TYPE> extends Page imple
         }
 
         @Override
-        public Object getParent(Object element)
-        {
-            if (element instanceof DBNNode) {
-                ResultsNode results = nodeMap.get(element);
-                if (results != null && results.parent != null) {
-                    return results.parent.node;
-                }
-            }
-            return null;
+        public Object getParent(Object element) {
+            return parentMap.get(element);
         }
 
         @Override
-        public boolean hasChildren(Object parentElement)
-        {
-            if (parentElement instanceof DBNNode) {
-                ResultsNode results = nodeMap.get(parentElement);
-                return results != null && !results.children.isEmpty();
+        public boolean hasChildren(Object parentElement) {
+            return !getChildNodes((DBNNode) parentElement, false).isEmpty();
+        }
+
+        @Nullable
+        @Override
+        public Object[] getChildren(Object parentElement) {
+            Collection<DBNNode> children = getChildNodes((DBNNode) parentElement, false);
+            if (children.isEmpty()) {
+                return null;
             }
-            return false;
+            return children.toArray();
         }
 
         @Override
-        public Object[] getChildren(Object parentElement)
-        {
-            if (parentElement instanceof DBNNode) {
-                ResultsNode results = nodeMap.get(parentElement);
-                if (results != null) {
-                    return results.getChildrenNodes();
-                }
-            }
-            return null;
+        public Object[] getElements(Object inputElement) {
+            return getChildNodes(rootNode, false).toArray();
         }
 
-        @Override
-        public Object[] getElements(Object inputElement)
-        {
-            return rootResults.getChildrenNodes();
-        }
-
-        private void rebuildObjectTree(Collection<DBNNode> nodeList)
-        {
-            rootResults = new ResultsNode(getRootNode(), null);
-            nodeMap = new IdentityHashMap<>();
-            final List<DBNNode> allParents = new ArrayList<>();
-            for (DBNNode node : nodeList) {
-                // Collect parent nodes
-                allParents.clear();
-                for (DBNNode parent = node.getParentNode(); parent != null && parent != getRootNode(); parent = parent.getParentNode()) {
-                    if (parent instanceof DBNContainer || parent instanceof DBNResource) {
-                        continue;
-                    }
-                    allParents.add(0, parent);
-                }
-                // Construct hierarchy
-                ResultsNode curParentResults = rootResults;
-                for (DBNNode parent : allParents) {
-                    ResultsNode parentResults = nodeMap.get(parent);
-                    if (parentResults == null) {
-                        parentResults = new ResultsNode(parent, curParentResults);
-                        nodeMap.put(parent, parentResults);
-                        curParentResults.children.add(parentResults);
-                    }
-                    curParentResults = parentResults;
-                }
-                // Make leaf
-                ResultsNode leaf = new ResultsNode(node, curParentResults);
-                nodeMap.put(node, leaf);
-                curParentResults.children.add(leaf);
+        private void rebuildObjectTree(Iterable<? extends DBNNode> nodes) {
+            parentMap.clear();
+            childrenMultimap.clear();
+            rootNode = getRootNode();
+            for (DBNNode node: nodes) {
+                handUpNode(node, null);
             }
         }
 
+        private void handUpNode(@NotNull DBNNode node, @Nullable DBNNode child) {
+            if (child != null) {
+                getChildNodes(node, true).add(child);
+            }
+            if (node == rootNode) {
+                return;
+            }
+            DBNNode parent = parentMap.get(node);
+            if (parent != null) {
+                getChildNodes(parent, true).add(node);
+                return;
+            }
+            parent = node.getParentNode();
+            while (parent != rootNode && (parent instanceof DBNContainer || parent instanceof DBNResource)) {
+                parent = parent.getParentNode();
+            }
+            handUpNode(parent, node); // TODO unroll tail recursion
+        }
+
+        @NotNull
+        private Collection<DBNNode> getChildNodes(@NotNull DBNNode node, boolean createContainer) {
+            Collection<DBNNode> children = childrenMultimap.get(node);
+            if (children != null) {
+                return children;
+            }
+            if (createContainer) {
+                children = new HashSet<>();
+                childrenMultimap.put(node, children);
+                return children;
+            }
+            return Collections.emptyList();
+        }
     }
 }
