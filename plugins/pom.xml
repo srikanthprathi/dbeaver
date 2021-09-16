@@ -49,7 +49,7 @@
         <module>org.jkiss.dbeaver.ext.phoenix</module>
 
         <module>org.jkiss.dbeaver.ext.postgresql</module>
-
+        <module>org.jkiss.dbeaver.ext.prestodb</module>
         <module>org.jkiss.dbeaver.ext.snowflake.core</module>
         <module>org.jkiss.dbeaver.ext.spanner</module>
         <module>org.jkiss.dbeaver.ext.sqlite</module>
@@ -71,6 +71,7 @@
         <module>org.jkiss.dbeaver.team.git</module>
 
         <module>org.jkiss.dbeaver.headless</module>
+        <module>org.jkiss.dbeaver.ext.presto</module>
     </modules>
 
     <profiles>

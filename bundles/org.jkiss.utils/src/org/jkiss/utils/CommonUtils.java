@@ -995,4 +995,12 @@ public class CommonUtils {
     public static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(value, max));
     }
+
+    @Nullable
+    public static <T> T tryCast(@Nullable Object object, @NotNull Class<T> clazz) {
+        if (clazz.isInstance(object)) {
+            return clazz.cast(object);
+        }
+        return null;
+    }
 }

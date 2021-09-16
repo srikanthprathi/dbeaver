@@ -275,6 +275,7 @@
         <setEntry value="org.jkiss.dbeaver.ext.postgresql.debug.ui@default:default"/>
         <setEntry value="org.jkiss.dbeaver.ext.postgresql.ui@default:default"/>
         <setEntry value="org.jkiss.dbeaver.ext.postgresql@default:default"/>
+        <setEntry value="org.jkiss.dbeaver.ext.prestodb@default:default"/>
         <setEntry value="org.jkiss.dbeaver.ext.sample.database@default:default"/>
         <setEntry value="org.jkiss.dbeaver.ext.snowflake.core@default:default"/>
         <setEntry value="org.jkiss.dbeaver.ext.snowflake.ui@default:default"/>
