@@ -25,6 +25,7 @@ import org.xml.sax.InputSource;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.XMLConstants;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,6 +62,7 @@ public class XMLUtils {
     public static Document parseDocument(InputSource source) throws XMLException {
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             DocumentBuilder xmlBuilder = dbf.newDocumentBuilder();
             return xmlBuilder.parse(source);
         } catch (Exception er) {
